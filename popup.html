@@ -20,7 +20,13 @@
       <label><span>Claude<small>Incognito chat</small></span><input type="checkbox" id="claude" role="switch" aria-label="Automatic incognito chats for Claude"></label>
       <label><span>Gemini<small>Temporary chat</small></span><input type="checkbox" id="gemini" role="switch" aria-label="Automatic temporary chats for Gemini"></label>
     </fieldset>
-    <section aria-label="Current page"><h2><span class="status-dot" aria-hidden="true"></span>Current page</h2><p id="status" role="status">Checking…</p><button id="new-chat" type="button" hidden>Open a temporary chat <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 12 12 4M4 4h8v8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button></section>
+    <section aria-label="Current page">
+      <h2><span class="status-dot" aria-hidden="true"></span>Current page</h2>
+      <p id="status" role="status" tabindex="-1">Checking…</p>
+      <button id="new-chat" type="button" hidden>Open a temporary chat <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 12 12 4M4 4h8v8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button id="regular-chat" class="secondary" type="button" hidden>Start one regular chat</button>
+      <button id="retry" class="secondary" type="button" hidden>Retry temporary mode</button>
+    </section>
     <p class="note">New chats only. Saved chats stay unchanged.</p>
     <footer>Uses each service’s temporary mode. Provider retention rules still apply.<details><summary>About your privacy</summary><p>Sideveil has no analytics and sends no chat data to a developer server. Settings stay in this browser. It does not open a browser Incognito window. Turning a switch off stops automation without closing your current temporary chat.</p></details></footer>
   </main>

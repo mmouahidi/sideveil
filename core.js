@@ -1,6 +1,11 @@
 (function (root) {
   'use strict';
   const defaults = { chatgpt: true, claude: true, gemini: true };
+  const newChatURLs = {
+    chatgpt: 'https://chatgpt.com/',
+    claude: 'https://claude.ai/new',
+    gemini: 'https://gemini.google.com/app'
+  };
   function provider(url) {
     return ({ 'chatgpt.com': 'chatgpt', 'claude.ai': 'claude', 'gemini.google.com': 'gemini' })[url.hostname] || null;
   }
@@ -25,7 +30,14 @@
     } else return null;
     return target.href;
   }
-  const api = { defaults, provider, isNewChat, temporaryURL };
+  function newChatURL(site, source) {
+    const url = new URL(newChatURLs[site]);
+    // Keep Gemini's selected account when opening a chat from an account-specific page.
+    const account = site === 'gemini' && source?.pathname.match(/^\/u\/\d+(?=\/|$)/);
+    if (account) url.pathname = account[0] + '/app';
+    return url;
+  }
+  const api = { defaults, provider, isNewChat, temporaryURL, newChatURL };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.IncognitoCore = api;
 })(globalThis);

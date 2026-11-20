@@ -8,7 +8,9 @@ Sideveil is a browser extension that requests or activates the native temporary/
 
 Sideveil stores three on/off preferences in your browser’s local extension storage. These preferences control automation for ChatGPT, Claude, and Gemini. It does not use browser sync storage.
 
-On supported sites, Sideveil inspects the current page URL and relevant interface controls, such as the temporary-chat button and mode indicator. When you open the popup, it identifies the current supported service and requests its temporary-mode status from the local content script. This processing happens in your browser.
+When you choose **Start one regular chat**, Sideveil keeps the new tab’s ID, AI provider, and expiry time in browser session memory until the tab claims the exception or closes. The exception cannot be claimed after two minutes.
+
+On supported sites, Sideveil inspects the current page URL and relevant interface controls, such as the temporary-chat button and mode indicator. It displays the result beside the message box and in the toolbar popup. This processing happens in your browser.
 
 ## Information not collected by Sideveil
 
