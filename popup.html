@@ -6,6 +6,7 @@
   <title>Sideveil</title>
   <link rel="stylesheet" href="popup.css">
   <script src="core.js" defer></script>
+  <script src="platforms.js" defer></script>
   <script src="popup.js" defer></script>
 </head>
 <body>
@@ -14,21 +15,37 @@
     <p class="tagline">Temporary chats. By default.</p>
   </header>
   <main>
+    <section aria-label="Current page">
+      <h2><span class="status-dot" aria-hidden="true"></span>Current page</h2>
+      <p id="status" role="status" tabindex="-1">Checking…</p>
+      <button id="new-chat" type="button" hidden>Open a temporary chat <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 12 12 4M4 4h8v8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button id="regular-chat" class="secondary" type="button" aria-describedby="regular-hint" hidden>Switch to regular here</button>
+      <p id="regular-hint" class="note" hidden>Switching can start a fresh chat in this tab. Copy any draft you want to keep.</p>
+      <button id="retry" class="secondary" type="button" hidden>Retry temporary mode</button>
+    </section>
+    <details class="platforms">
+      <summary>More platforms</summary>
+      <label for="platform">Choose a site</label>
+      <select id="platform" aria-describedby="platform-tip">
+        <optgroup id="native-platforms" label="Sites with a temporary mode"></optgroup>
+        <optgroup id="browser-platforms" label="Private browser window"></optgroup>
+      </select>
+      <p id="platform-tip"></p>
+      <button id="open-platform" type="button">Open site for temporary mode</button>
+      <button id="open-private" type="button">Open in Incognito or InPrivate</button>
+      <p class="note">A private browser window keeps activity out of local browser history after it closes. Sites can still save activity to an account you sign in to.</p>
+      <p class="note" id="launch-error" role="status" hidden></p>
+    </details>
     <fieldset disabled id="controls">
       <legend>Make it automatic</legend>
       <label><span>ChatGPT<small>Temporary chat</small></span><input type="checkbox" id="chatgpt" role="switch" aria-label="Automatic temporary chats for ChatGPT"></label>
       <label><span>Claude<small>Incognito chat</small></span><input type="checkbox" id="claude" role="switch" aria-label="Automatic incognito chats for Claude"></label>
       <label><span>Gemini<small>Temporary chat</small></span><input type="checkbox" id="gemini" role="switch" aria-label="Automatic temporary chats for Gemini"></label>
+      <label><span>Grok<small>Private Chat preview</small></span><input type="checkbox" id="grok" role="switch" aria-label="Automatic Private Chat for Grok"></label>
+      <label><span>Microsoft 365 Copilot<small>Temporary Chat preview</small></span><input type="checkbox" id="copilot" role="switch" aria-label="Automatic Temporary Chat for Microsoft 365 Copilot"></label>
     </fieldset>
-    <section aria-label="Current page">
-      <h2><span class="status-dot" aria-hidden="true"></span>Current page</h2>
-      <p id="status" role="status" tabindex="-1">Checking…</p>
-      <button id="new-chat" type="button" hidden>Open a temporary chat <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 12 12 4M4 4h8v8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-      <button id="regular-chat" class="secondary" type="button" hidden>Start one regular chat</button>
-      <button id="retry" class="secondary" type="button" hidden>Retry temporary mode</button>
-    </section>
     <p class="note">New chats only. Saved chats stay unchanged.</p>
-    <footer>Uses each service’s temporary mode. Provider retention rules still apply.<details><summary>About your privacy</summary><p>Sideveil has no analytics and sends no chat data to a developer server. Settings stay in this browser. It does not open a browser Incognito window. Turning a switch off stops automation without closing your current temporary chat.</p></details></footer>
+    <footer>Provider retention rules still apply.<details><summary>About your privacy</summary><p>Sideveil has no analytics and sends no chat data to a developer server. Settings stay in this browser. Turning a switch off stops automation without closing your current temporary chat.</p></details></footer>
   </main>
 </body>
 </html>

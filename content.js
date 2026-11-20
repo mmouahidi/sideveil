@@ -12,10 +12,14 @@
   let lastAttempt = -Infinity;
   let scheduled = false;
   let regularChat = false;
+  let startedEditing = false;
   let chatStatus;
   const activationTimeout = 15000;
   const version = chrome.runtime.getManifest().version;
-  const isTemporaryActive = { chatgpt: chatgptActive, claude: claudeActive, gemini: geminiActive }[site];
+  const isTemporaryActive = {
+    chatgpt: chatgptActive, claude: claudeActive, gemini: geminiActive,
+    grok: grokActive, copilot: copilotActive
+  }[site];
   const descriptions = {
     checking: 'Checking temporary mode…',
     active: 'Temporary mode confirmed on this page.',
@@ -35,9 +39,9 @@
     document.documentElement?.setAttribute('data-incognito-attempts', String(attempts));
     const newChat = core.isNewChat(new URL(location.href));
     if (!chatStatus && document.body && newChat) {
-      chatStatus = globalThis.SideveilChatStatus.create(site, retry, openRegular);
+      chatStatus = globalThis.SideveilChatStatus.create(site, retry, switchToRegular);
     }
-    chatStatus?.render(newChat ? value : 'existing');
+    chatStatus?.render(newChat ? value : 'existing', site !== 'gemini' || geminiConversationHeader());
   }
 
   function resetActivation() {
@@ -53,9 +57,20 @@
     return state();
   }
 
-  async function openRegular() {
-    const result = await chrome.runtime.sendMessage({ type: 'sideveil-open-regular' });
-    if (!result?.ok) throw new Error('Could not open regular chat');
+  async function switchToRegular() {
+    const newChat = core.isNewChat(new URL(location.href));
+    if (site === 'gemini' && newChat && !geminiConversationHeader()) {
+      const button = geminiButton();
+      regularChat = true;
+      // Exit on the empty composer using the provider's own control.
+      // When activation never succeeded, releasing Sideveil’s guard is enough.
+      if (geminiIcon(button) === 'close') button.click();
+      inspect();
+      return { ok: true };
+    }
+    const result = await chrome.runtime.sendMessage({ type: 'sideveil-switch-regular' });
+    if (!result?.ok) throw new Error('Could not switch to a regular chat');
+    return result;
   }
 
   function geminiButton() {
@@ -66,12 +81,14 @@
     const icon = button?.querySelector('mat-icon');
     return icon?.getAttribute('data-mat-icon-name') || icon?.getAttribute('fonticon') || '';
   }
-  function geminiActive() {
-    if (geminiIcon(geminiButton()) === 'close') return true;
+  function geminiConversationHeader() {
     // After the first message Gemini removes the toggle and renders this
     // conversation header instead, while keeping the same /app URL.
     const header = document.querySelector('.temporary-chat-header');
     return !!header && !header.hidden && header.getAttribute('aria-hidden') !== 'true' && header.getClientRects().length > 0;
+  }
+  function geminiActive() {
+    return geminiIcon(geminiButton()) === 'close' || geminiConversationHeader();
   }
   function chatgptActive() {
     return [...document.querySelectorAll('button use[href*="chat-bubble-checkmark-dashed"]')]
@@ -86,6 +103,33 @@
       /^(exit incognito|quitter le mode incognito)$/i.test(button.getAttribute('aria-label')));
   }
 
+  function grokActive() {
+    if (!core.isNewChat(new URL(location.href)) || location.hash !== '#private') return false;
+    const notices = document.querySelectorAll('div.py-4.mx-auto > span.bg-surface-base');
+    return [...notices].some(notice => notice.getClientRects().length > 0 &&
+      /^This chat won['’]t appear in your history\b/i.test(notice.textContent.trim()));
+  }
+
+  function copilotActive() {
+    const button = document.querySelector('button[aria-label="Temporary chat"][aria-pressed="true"]');
+    return !!button?.getClientRects().length;
+  }
+
+  function tryPreviewActivation(url) {
+    if (attempts || startedEditing) return;
+    const control = site === 'grok'
+      ? document.querySelector('a[aria-label="Switch to Private Chat"][href]')
+      : document.querySelector('button[aria-label="Temporary chat"][aria-pressed="false"]');
+    if (!control?.getClientRects().length || control.disabled || control.getAttribute('aria-disabled') === 'true') return;
+    if (site === 'grok') {
+      const destination = new URL(control.href, url);
+      if (destination.origin !== url.origin || destination.pathname !== '/c' ||
+          destination.hash !== '#private' || destination.search || url.hash === '#private') return;
+    }
+    attempts++;
+    control.click();
+  }
+
   function inspect() {
     scheduled = false;
     if (!loaded) return;
@@ -94,6 +138,7 @@
     if (url.href !== currentURL) {
       currentURL = url.href;
       if (!newChat) regularChat = false;
+      startedEditing = false;
       resetActivation();
     }
     // Recognize the site's indicator even after the user chose regular mode or paused automation.
@@ -113,6 +158,11 @@
       return;
     }
     const timedOut = Date.now() - since > activationTimeout;
+    if (site === 'grok' || site === 'copilot') {
+      setStatus(timedOut ? 'unverified' : 'checking');
+      if (!timedOut) tryPreviewActivation(url);
+      return;
+    }
     if (site !== 'gemini') { setStatus(timedOut ? 'unverified' : 'requested'); return; }
     setStatus(timedOut ? 'blocked' : 'checking');
     const button = geminiButton();
@@ -158,6 +208,12 @@
   for (const type of ['submit', 'keydown', 'beforeinput', 'paste', 'drop', 'click']) {
     document.addEventListener(type, guard, true);
   }
+  if (site === 'grok' || site === 'copilot') {
+    document.addEventListener('beforeinput', event => {
+      if (event.isTrusted && event.target instanceof Element &&
+          event.target.closest('textarea, [contenteditable="true"]')) startedEditing = true;
+    }, true);
+  }
   // Rewrite new-chat links before SPA routers handle them; preserve query options.
   document.addEventListener('click', event => {
     if (!loaded || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -178,7 +234,7 @@
     if (redirect) { event.preventDefault(); event.stopImmediatePropagation(); location.assign(redirect); }
   }, true);
 
-  new MutationObserver(schedule).observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-mat-icon-name', 'fonticon', 'aria-label'] });
+  new MutationObserver(schedule).observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-mat-icon-name', 'fonticon', 'aria-label', 'aria-pressed'] });
   // Also catches history.pushState navigations that do not mutate the document.
   setInterval(inspect, 750);
   window.addEventListener('popstate', schedule);
@@ -203,5 +259,9 @@
   chrome.runtime.onMessage.addListener((message, sender, respond) => {
     if (message.type === 'incognito-status') { inspect(); respond(state()); }
     if (message.type === 'sideveil-retry') respond(retry());
+    if (message.type === 'sideveil-switch-regular') {
+      switchToRegular().then(respond, () => respond({ ok: false }));
+      return true;
+    }
   });
 })();

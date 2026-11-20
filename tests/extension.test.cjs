@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const core = require('../core.js');
+const { platforms, launchPlatform } = require('../platforms.js');
 
 test('only supported blank chat routes are redirected', () => {
   for (const address of ['https://chatgpt.com/c/saved', 'https://chatgpt.com/g/gem', 'https://claude.ai/chat/saved', 'https://claude.ai/project/p', 'https://gemini.google.com/app/saved', 'https://gemini.google.com/gem/g', 'https://claude.ai/login', 'https://example.com/']) {
@@ -36,7 +37,7 @@ test('Gemini account-specific blank routes use UI activation', () => {
   }
 });
 
-async function fixture({ href = 'https://gemini.google.com/app', icon = 'gemini_chat_temp', settings = {}, succeeds = true, present = true, ignoredClicks = 0, regular = false } = {}) {
+async function fixture({ href = 'https://gemini.google.com/app', icon = 'gemini_chat_temp', settings = {}, succeeds = true, present = true, ignoredClicks = 0, regular = false, previewControl = null } = {}) {
   const listeners = {};
   let storageListener, messageListener;
   let clock = 0;
@@ -67,21 +68,33 @@ async function fixture({ href = 'https://gemini.google.com/app', icon = 'gemini_
         callback(event);
         if (event.stopped) break;
       }
-      if (!event.defaultPrevented && succeeds && clicks > ignoredClicks) icon = 'close';
+      if (!event.defaultPrevented && succeeds && clicks > ignoredClicks) {
+        icon = icon === 'close' ? 'gemini_chat_temp' : 'close';
+      }
     }
   }
   const button = new ToggleButton();
   const location = { href, replace(value) { this.href = value; this.redirect = value; }, assign(value) { this.href = value; } };
   Object.defineProperty(location, 'origin', { get: () => new URL(location.href).origin });
+  Object.defineProperty(location, 'hash', { get: () => new URL(location.href).hash });
   const body = { append() {} };
   const document = {
     body,
-    querySelector: selector => selector === '.temporary-chat-header' ?
-      (conversationHeader ? { hidden: false, getAttribute: () => null, getClientRects: () => [{}] } : null) :
-      (selector.includes('temp-chat') || selector.includes('Temporary chat') ? (present ? button : null) : null),
-    querySelectorAll: selector => selector === 'button[aria-label]' && modeIndicator
-      ? [{ getClientRects: () => [{}], getAttribute: () => modeIndicator }]
-      : [],
+    querySelector(selector) {
+      if (selector === '.temporary-chat-header') {
+        return conversationHeader ? { hidden: false, getAttribute: () => null, getClientRects: () => [{}] } : null;
+      }
+      if (selector.includes('aria-pressed') || selector.includes('Switch to Private Chat')) {
+        return previewControl?.(selector, location) || null;
+      }
+      return selector.includes('temp-chat') || selector.includes('Temporary chat') ? (present ? button : null) : null;
+    },
+    querySelectorAll(selector) {
+      if (selector.includes('bg-surface-base')) return previewControl?.(selector, location) || [];
+      return selector === 'button[aria-label]' && modeIndicator
+        ? [{ getClientRects: () => [{}], getAttribute: () => modeIndicator }]
+        : [];
+    },
     addEventListener(type, callback) { (listeners[type] ||= []).push(callback); }
   };
   const context = vm.createContext({
@@ -110,6 +123,7 @@ async function fixture({ href = 'https://gemini.google.com/app', icon = 'gemini_
   }
   return {
     status, location, get clicks() { return clicks; }, tick: () => interval(),
+    switchRegular: () => new Promise(resolve => messageListener({ type: 'sideveil-switch-regular' }, {}, resolve)),
     setIcon: value => { icon = value; },
     setModeIndicator: value => { modeIndicator = value; },
     enableToggle: () => { present = true; },
@@ -256,15 +270,14 @@ test('one regular Claude chat opens without a temporary URL redirect', async () 
   assert.equal(app.location.redirect, undefined);
 });
 
-test('regular chat opens in the new tab only and keeps the selected Gemini account', async () => {
+test('regular chat reuses the source tab and keeps the selected Gemini account', async () => {
   const tabs = new Map();
   const data = {};
   let onMessage, onRemoved;
-  const popup = 'chrome-extension://sideveil/popup.html';
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../background.js'), 'utf8'), {
     importScripts() {}, URL, IncognitoCore: core,
     chrome: {
-      runtime: { getURL: () => popup, onMessage: { addListener: fn => { onMessage = fn; } } },
+      runtime: { onMessage: { addListener: fn => { onMessage = fn; } } },
       storage: {
         session: {
           async get(key) { return { [key]: data[key] }; },
@@ -273,7 +286,6 @@ test('regular chat opens in the new tab only and keeps the selected Gemini accou
         }
       },
       tabs: {
-        async create(options) { tabs.set(12, options); return { id: 12 }; },
         async update(id, options) {
           assert.ok(data['regular-chat:' + id]);
           tabs.set(id, options);
@@ -283,7 +295,8 @@ test('regular chat opens in the new tab only and keeps the selected Gemini accou
     }
   });
   const send = (message, sender) => new Promise(resolve => onMessage(message, sender, resolve));
-  const opened = await send({ type: 'sideveil-open-regular', page: 'https://gemini.google.com/u/2/app/saved' }, { url: popup });
+  const source = { url: 'https://gemini.google.com/u/2/app/saved', tab: { id: 12 }, frameId: 0 };
+  const opened = await send({ type: 'sideveil-switch-regular' }, source);
   assert.equal(opened.ok, true);
   const url = tabs.get(12).url;
   assert.equal(url, 'https://gemini.google.com/u/2/app');
@@ -291,15 +304,89 @@ test('regular chat opens in the new tab only and keeps the selected Gemini accou
   assert.equal(await claim(11), false);
   assert.equal(await claim(12), true);
   assert.equal(await claim(12), false);
-  await send({ type: 'sideveil-open-regular', page: url }, { url: popup });
+  await send({ type: 'sideveil-switch-regular' }, source);
   onRemoved(12);
   assert.equal(await claim(12), false);
+});
+
+test('a Gemini empty temporary chat switches in place and keeps its automation preference', async () => {
+  const app = await fixture({ icon: 'close' });
+  assert.equal(app.status(), 'active');
+  assert.equal((await app.switchRegular()).ok, true);
+  assert.equal(app.status(), 'regular');
+  assert.equal(app.location.redirect, undefined);
+  assert.equal(app.event('beforeinput').prevented, undefined);
+  assert.equal(app.clicks, 1);
+  app.location.href = 'https://gemini.google.com/app/saved';
+  app.tick();
+  app.location.href = 'https://gemini.google.com/app';
+  app.tick();
+  assert.equal(app.status(), 'active');
+});
+
+test('opening a launcher site uses a fresh private window and never falls back to a normal tab', async () => {
+  const opened = [];
+  const browser = {
+    windows: { create: async options => { opened.push(options); throw new Error('Policy blocked private windows'); } },
+    tabs: { create: async () => assert.fail('unexpected ordinary tab') }
+  };
+  for (const id of Object.keys(platforms)) {
+    await assert.rejects(launchPlatform(id, true, browser), /Policy blocked/);
+  }
+  assert.equal(opened.length, 11);
+  for (const {url, incognito} of opened) {
+    assert.equal(incognito, true);
+    assert.equal(new URL(url).search, '');
+  }
+  await assert.rejects(launchPlatform('youtube', false, browser), /private browser window/);
+  await assert.rejects(launchPlatform('constructor', true, browser), /Unsupported platform/);
+});
+
+test('Copilot preview waits for pressed state and never toggles twice', async () => {
+  let clicks = 0;
+  let pressed = false;
+  const control = { getClientRects: () => [{}], getAttribute: () => null, click: () => { clicks++; } };
+  const app = await fixture({
+    href: 'https://copilot.cloud.microsoft/chat', settings: { copilot: true },
+    previewControl: selector => selector.includes('"' + pressed + '"') ? control : null
+  });
+  assert.equal(app.status(), 'checking');
+  app.advance(16000);
+  assert.equal(app.status(), 'unverified');
+  assert.equal(clicks, 1);
+  pressed = true;
+  assert.equal(app.status(), 'active');
+  assert.equal(clicks, 1);
+});
+
+test('Grok preview uses a clean private-chat target and does not trust the URL alone', async () => {
+  let clicks = 0;
+  let notice = false;
+  const control = {
+    href: 'https://grok.com/c#private', getClientRects: () => [{}], getAttribute: () => null,
+    click: () => { clicks++; }
+  };
+  const app = await fixture({
+    href: 'https://grok.com/', settings: { grok: true },
+    previewControl: selector => selector.includes('bg-surface-base')
+      ? (notice ? [{ getClientRects: () => [{}], textContent: 'This chat won’t appear in your history.' }] : [])
+      : control
+  });
+  assert.equal(clicks, 1);
+  app.location.href = control.href;
+  assert.equal(app.status(), 'checking');
+  notice = true;
+  assert.equal(app.status(), 'active');
+  assert.equal(clicks, 1);
+  app.location.href = 'https://grok.com/c/saved#private';
+  assert.equal(app.status(), 'existing');
 });
 test('manifest has no unnecessary network or browsing-history permission', () => {
   const manifest = require('../manifest.json');
   assert.deepEqual(manifest.permissions, ['storage', 'activeTab']);
   assert.equal(manifest.manifest_version, 3);
-  for (const file of manifest.content_scripts[0].js.concat([manifest.background.service_worker, 'popup.html', 'popup.js', 'popup.css'])) {
+  assert.ok(!manifest.content_scripts[0].matches.some(host => host.includes('www.google.com') || host.includes('youtube.com')));
+  for (const file of manifest.content_scripts[0].js.concat([manifest.background.service_worker, 'platforms.js', 'popup.html', 'popup.js', 'popup.css'])) {
     assert.equal(fs.existsSync(path.join(__dirname, '..', file)), true, file);
   }
 });

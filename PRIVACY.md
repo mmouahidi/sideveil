@@ -2,13 +2,13 @@
 
 Last updated: November 20, 2026
 
-Sideveil is a browser extension that requests or activates the native temporary/incognito mode for new ChatGPT, Claude, and Gemini conversations.
+Sideveil is a browser extension that requests or activates native temporary modes for new conversations on supported AI sites. Its platform launcher also offers browser Incognito or InPrivate windows.
 
 ## Information used on your device
 
-Sideveil stores three on/off preferences in your browser’s local extension storage. These preferences control automation for ChatGPT, Claude, and Gemini. It does not use browser sync storage.
+Sideveil saves per-service automation preferences in your browser’s local extension storage.
 
-When you choose **Start one regular chat**, Sideveil keeps the new tab’s ID, AI provider, and expiry time in browser session memory until the tab claims the exception or closes. The exception cannot be claimed after two minutes.
+When you choose **Switch to regular here** and the page needs to reload, Sideveil keeps the existing tab’s ID, AI provider, and expiry time in browser session memory until the tab claims the exception or closes. The exception cannot be claimed after two minutes. The platform launcher opens a fixed entry URL. It does not copy the current page, query, or chat.
 
 On supported sites, Sideveil inspects the current page URL and relevant interface controls, such as the temporary-chat button and mode indicator. It displays the result beside the message box and in the toolbar popup. This processing happens in your browser.
 
@@ -22,7 +22,7 @@ All extension code and fonts are included in the package. The extension does not
 
 Your messages are still sent to the AI service you choose. Sideveil does not replace that service’s privacy policy, retention rules, account requirements, or temporary-chat limitations. The service may retain temporary chats under its own policies. The browser extension stores may process installation, account, or review information under their own policies.
 
-Sideveil does not provide anonymity, network encryption, a VPN, browser Incognito/InPrivate windows, or retroactive deletion of saved chats. It cannot verify a provider’s internal data handling.
+Browser Incognito and InPrivate windows limit local browsing history. A provider may still record or associate activity with an account you use in that window.
 
 ## Your choices
 

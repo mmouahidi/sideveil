@@ -4,17 +4,17 @@ const core = globalThis.IncognitoCore;
 const session = chrome.storage.session;
 const regularKey = tabId => 'regular-chat:' + tabId;
 
-async function openRegularChat(site, source, windowId) {
+async function switchToRegularChat(site, source, tabId) {
   const url = core.newChatURL(site, source);
-  // Register the exception before the provider tab starts running its content script.
-  const tab = await chrome.tabs.create({ url: 'about:blank', active: false, windowId });
-  const key = regularKey(tab.id);
+  // Register the exception before the replacement document starts running.
+  const key = regularKey(tabId);
   try {
     await session.set({ [key]: { site, expires: Date.now() + 120000 } });
-    await chrome.tabs.update(tab.id, { url: url.href, active: true });
+    if (url.href === source.href) await chrome.tabs.reload(tabId);
+    else await chrome.tabs.update(tabId, { url: url.href });
     return { ok: true };
   } catch (error) {
-    await Promise.allSettled([session.remove(key), chrome.tabs.remove(tab.id)]);
+    await session.remove(key);
     throw error;
   }
 }
@@ -37,17 +37,15 @@ chrome.tabs.onRemoved.addListener(tabId => {
 });
 
 chrome.runtime.onMessage.addListener((message, sender, respond) => {
-  if (message.type !== 'sideveil-open-regular' && message.type !== 'sideveil-claim-regular') return;
+  if (message.type !== 'sideveil-switch-regular' && message.type !== 'sideveil-claim-regular') return;
   const source = sender.url && new URL(sender.url);
   const fromPage = source?.protocol === 'https:' && sender.frameId === 0 && sender.tab;
-  const fromPopup = sender.url === chrome.runtime.getURL('popup.html');
   let result;
   if (message.type === 'sideveil-claim-regular' && fromPage && core.provider(source)) {
     result = claimRegularChat(source, sender.tab.id);
-  } else if (message.type === 'sideveil-open-regular') {
-    const url = fromPage ? source : fromPopup && URL.canParse(message.page) && new URL(message.page);
-    const site = url && core.provider(url);
-    if (site && url.protocol === 'https:') result = openRegularChat(site, url, sender.tab?.windowId);
+  } else if (message.type === 'sideveil-switch-regular' && fromPage) {
+    const site = core.provider(source);
+    if (site) result = switchToRegularChat(site, source, sender.tab.id);
   }
   if (!result) return;
   result.then(respond, () => respond({ ok: false }));

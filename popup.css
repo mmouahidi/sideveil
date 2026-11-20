@@ -9,7 +9,7 @@ h1 { margin: 0; font-size: 28px; font-weight: 650; letter-spacing: -.035em; }
 p { margin: 0; line-height: 1.5; }
 .tagline { margin-top: 11px; font-size: 14px; color: #fff; }
 main { padding: 20px 24px 16px; }
-fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
+fieldset { margin: 16px 0 0; padding: 0; border: 0; min-width: 0; }
 legend, h2 { padding: 0; margin: 0 0 4px; font-size: 12px; font-weight: 650; }
 label { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 15px; cursor: pointer; }
 small { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); }
@@ -19,7 +19,7 @@ input:checked { background: var(--blue); border-color: var(--blue); }
 input:checked::after { transform: translateX(14px); }
 input:disabled { opacity: .5; cursor: wait; }
 input:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; }
-section { margin-top: 16px; padding: 14px; border-radius: 12px; background: var(--tint); }
+section { padding: 14px; border-radius: 12px; background: var(--tint); }
 h2 { display: flex; align-items: center; gap: 7px; }
 .status-dot { width: 7px; height: 7px; border: 1px solid currentColor; border-radius: 50%; }
 section[data-state="active"] .status-dot { background: currentColor; }
@@ -35,6 +35,12 @@ button:disabled { opacity: .6; cursor: wait; }
 footer { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
 summary { margin-top: 8px; color: var(--ink); cursor: pointer; width: fit-content; text-underline-offset: 3px; }
 details[open] p { margin-top: 8px; }
+.platforms { margin-top: 14px; padding-top: 6px; border-top: 1px solid var(--line); }
+.platforms summary { font-size: 12px; font-weight: 650; }
+.platforms label { display: block; margin: 10px 0 4px; padding: 0; border: 0; font-size: 12px; }
+.platforms select { width: 100%; padding: 8px; border: 1px solid var(--track); border-radius: 7px; color: var(--ink); background: var(--ground); font: inherit; }
+.platforms select:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.platforms p { font-size: 12px; }
 ::selection { background: #a9f0d3; color: #132755; }
 @media (prefers-color-scheme: dark) { :root { --ground: #111c36; --ink: #e7edff; --muted: #b4c3e6; --tint: #1b2c50; --line: #344772; --track: #647494; } input:focus-visible, button:focus-visible, summary:focus-visible { outline-color: #a9f0d3; } }
 @media (prefers-reduced-motion: reduce) { input, input::after { transition: none; } }
