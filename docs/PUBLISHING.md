@@ -7,9 +7,10 @@ The included runtime is version **1.1.0**. GitHub publication makes the source a
 1. Run `node --test tests/extension.test.cjs` and resolve failures.
 2. Load the actual release files as an unpacked extension in Chrome and Edge.
 3. On each supported service, check automatic activation, the provider’s own mode indicator, an initial harmless message, and a follow-up message.
-4. Check saved conversations, per-service switches, and both status displays. Open one regular chat and verify the original draft stays intact and the next new chat uses the usual default.
-5. Check Gemini’s unavailable-mode warning. Use **Retry** and verify that **Start one regular chat** opens a separate tab with its composer available.
-6. Check that the README, privacy policy, manifest version, and package contents describe the same release.
+4. Check saved conversations, per-service switches, and both status displays. Switch to regular mode and verify it stays in the current tab and the next new chat uses the usual default.
+5. Check Gemini’s unavailable-mode warning. Use **Retry** and **Switch to regular here** to verify both recovery options.
+6. Verify that **More platforms** opens the chosen clean entry page in a private browser window and that Grok and Microsoft 365 Copilot previews only confirm when their native modes are active.
+7. Check that the README, privacy policy, manifest version, and package contents describe the same release.
 
 Automated fixture tests do not replace checking the installed release against live provider interfaces. Historical checks of earlier versions are not evidence that the current release has passed live checks.
 
@@ -26,6 +27,7 @@ content.js
 popup.html
 popup.css
 popup.js
+platforms.js
 icons/icon-16.png
 icons/icon-32.png
 icons/icon-48.png

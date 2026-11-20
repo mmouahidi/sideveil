@@ -26,9 +26,10 @@ Sideveil requests or activates each AI service’s native temporary or incognito
 - **Temporary by default:** automate the native temporary-chat mode on three supported services.
 - **Choose per service:** turn ChatGPT, Claude, and Gemini automation on or off independently. All three start enabled.
 - **See the mode before you send:** check Sideveil’s status beside the message box or in the toolbar popup.
-- **Keep one chat in history:** start a regular chat in a separate tab and keep your usual temporary default.
+- **Switch to regular here:** use the current tab for a regular chat and keep your usual temporary default for the next chat.
+- **More platforms:** find native temporary mode instructions or open a clean site in an Incognito or InPrivate window.
 - **Keep your current conversation:** open a separate temporary chat from the popup without replacing your conversation or draft.
-- **Local settings:** three preferences stored in this browser, with no Sideveil account, analytics, or developer backend.
+- **Local settings:** preferences are stored in this browser, with no Sideveil account, analytics, or developer backend.
 - **Simple to inspect:** plain JavaScript, HTML, and CSS, with bundled fonts and no runtime dependencies.
 
 ## Install
@@ -54,7 +55,7 @@ Keep the extracted folder on your computer: the browser loads the extension from
 
 On a supported page, **Open a temporary chat** enables automation for that service and opens a separate tab. Turning a service switch off stops future automation; it does not close or exit an already active temporary conversation. While Gemini automation is enabled, Sideveil attempts to reactivate temporary mode if you exit it on a supported new-chat page.
 
-Choose **Start one regular chat** beside the message box or in the popup to open a fresh tab with automation paused. Your draft stays in the original tab. Sideveil resumes its usual default when you reload the regular chat page or start another chat.
+Choose **Switch to regular here** beside the message box or in the popup. On an empty Gemini composer, Sideveil switches modes in place. On other surfaces, it may load a fresh regular chat in the same tab. Copy any draft you want to keep before switching. The next new chat uses your usual temporary preference.
 
 ### Status messages
 
@@ -75,26 +76,36 @@ Choose **Start one regular chat** beside the message box or in the popup to open
 | ChatGPT | `/` on `chatgpt.com` | Adds `temporary-chat=true`, preserving other query parameters and the URL fragment. |
 | Claude | `/`, `/new`, `/new/` on `claude.ai` | Uses `/new?incognito`, preserving other query parameters and the URL fragment. |
 | Gemini | `/app`, `/u/NUMBER/app`, with optional trailing slash, on `gemini.google.com` | Activates the native temporary-chat control and checks its active indicator or conversation header. |
+| Grok (opt-in preview) | Clean home or new-chat page on `grok.com` | Uses Grok’s Private Chat control when recognized and confirms the native history notice. |
+| Microsoft 365 Copilot (opt-in preview) | Clean `/chat` on `copilot.cloud.microsoft` | Looks for the native Temporary Chat toggle and confirms its pressed state. Organization retention can still apply. |
 
 Content scripts watch supported pages for navigation and relevant interface changes. Saved chats, projects, Gems, shared chats, settings, and sign-in routes are outside the new-chat routes; Sideveil does not convert existing conversations retroactively.
 
-Gemini activation makes at most four attempts per try, spaced at least 2.5 seconds apart. Until activation succeeds, Sideveil pauses ordinary input and send events. After about 15 seconds it offers **Retry** and **Start one regular chat**. The guard works on page events, so voice input, other tools, and site updates can bypass it.
+Gemini activation makes at most four attempts per try, spaced at least 2.5 seconds apart. Until activation succeeds, Sideveil pauses ordinary input and send events. After about 15 seconds it offers **Retry** and **Switch to regular here**. The guard works on page events, so voice input, other tools, and site updates can bypass it.
+
+### More platforms
+
+Open **More platforms** in the popup and choose a site. Perplexity, Mistral Vibe, and Google Search AI Mode have guided shortcuts to their native modes. Grok and Microsoft 365 Copilot also have guided shortcuts if you prefer to use the native controls yourself. The Grok and Copilot automation previews start off and only show confirmation when they detect the provider’s active state.
+
+The launcher can open all of those sites plus Kimi, Manus, DeepSeek, MiniMax Agent, Google Search, and YouTube in a browser Incognito or InPrivate window. The window starts on the site’s entry page. A provider can still record activity if you sign in, and existing private windows can share sign-in state until you close all of them. See [platform coverage](docs/PLATFORMS.md) for documented controls and verification limits.
 
 ## Privacy and permissions
 
-Sideveil stores its three automation preferences in `chrome.storage.local`. To open a regular chat, it temporarily stores the new tab ID, provider, and expiry in browser session memory. On supported pages, it inspects the URL and relevant interface controls to request and recognize temporary mode. Code and fonts ship with the extension.
+Sideveil stores automation preferences in `chrome.storage.local`. To switch a chat that requires navigation, it temporarily stores the current tab ID, provider, and expiry in browser session memory. On sites with automation, it inspects the URL and relevant interface controls to request and recognize temporary mode. Code and fonts ship with the extension.
 
 The extension has no analytics, remote code, developer server, prompt collection, message logging, or network interception. It does not transmit chat data or preferences to a developer backend.
 
 | Permission or site access | Purpose |
 | --- | --- |
-| `storage` | Save the service switches locally and pass a one-time exception to a new tab through session memory. |
+| `storage` | Save the service switches locally and pass a one-time exception across navigation through session memory. |
 | `activeTab` | Identify the current supported tab when the popup is opened and request its mode status. |
 | `https://chatgpt.com/*` | Run the ChatGPT content script. |
 | `https://claude.ai/*` | Run the Claude content script. |
 | `https://gemini.google.com/*` | Run the Gemini content script. |
+| `https://grok.com/*` | Read Private Chat state and optionally activate the Grok preview. |
+| `https://copilot.cloud.microsoft/chat*` | Read Temporary Chat state and optionally activate the Copilot preview. |
 
-**Privacy limits:** your messages still go to the AI provider. Its retention rules, account requirements, and feature availability apply. Sideveil does not provide anonymity, open browser Incognito/InPrivate windows, erase browser history, guarantee deletion, or verify a provider’s internal data handling.
+**Privacy limits:** your messages still go to the AI provider. Its retention rules, account requirements, and feature availability apply. A browser Incognito or InPrivate window controls local browsing history. The provider’s native mode controls the conversation according to the provider’s policies.
 
 Read the [full privacy policy](PRIVACY.md).
 
@@ -104,7 +115,7 @@ Read the [full privacy policy](PRIVACY.md).
 | --- | --- |
 | The popup asks you to reload | Reload the supported page after installing or updating the extension. |
 | Sideveil says “Couldn’t confirm” | Check for the provider’s indicator. An unrecognized language or changed interface can prevent verification. Retry to check again or use the provider’s temporary chat control. |
-| Gemini pauses typing or sending | Wait for activation. If it times out, choose **Retry** or **Start one regular chat**. Gemini’s temporary mode requires a personal Google account. [Gemini Help](https://support.google.com/gemini/answer/13275745?co=GENIE.Platform%3DDesktop&hl=en) |
+| Gemini pauses typing or sending | Wait for activation. If it times out, choose **Retry** or **Switch to regular here**. Gemini’s temporary mode requires a personal Google account. [Gemini Help](https://support.google.com/gemini/answer/13275745?co=GENIE.Platform%3DDesktop&hl=en) |
 | A saved conversation stays unchanged | Start a new chat. Sideveil does not convert existing conversations. |
 | Temporary mode does not activate | Check that the service switch is on and that the feature is available to your account. Report persistent failures with the details below. |
 
@@ -130,7 +141,8 @@ These are local tests using page fixtures. They do not prove that the latest liv
 sideveil/
 ├── manifest.json          # Extension identity, permissions, and content scripts
 ├── core.js                # Provider detection and new-chat URL rules
-├── background.js          # Opens regular tabs and hands off the one-time exception
+├── background.js          # Switches the current tab and hands off the one-time exception
+├── platforms.js           # Site directory and private browser launcher
 ├── chat-status.js         # Mode indicator and controls beside the message box
 ├── content.js             # Activation, status detection, navigation, and guards
 ├── popup.html             # Settings and current-page status

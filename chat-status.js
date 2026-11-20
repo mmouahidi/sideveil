@@ -3,7 +3,9 @@
   const editors = {
     chatgpt: '#prompt-textarea',
     claude: '[contenteditable="true"].ProseMirror, [contenteditable="true"][data-testid="chat-input"]',
-    gemini: 'rich-textarea [contenteditable="true"], .ql-editor[contenteditable="true"]'
+    gemini: 'rich-textarea [contenteditable="true"], .ql-editor[contenteditable="true"]',
+    grok: 'textarea, [contenteditable="true"][role="textbox"]',
+    copilot: '#m365-chat-editor-target-element'
   };
   const titles = {
     checking: 'Checking temporary mode…',
@@ -74,7 +76,7 @@
     [hidden] { display: none; }
   `;
 
-  function create(site, retry, openRegular) {
+  function create(site, retry, switchToRegular) {
     const host = document.createElement('div');
     const shadow = host.attachShadow({ mode: 'closed' });
     const sheet = new CSSStyleSheet();
@@ -86,10 +88,11 @@
           <div><span class="brand">Sideveil</span><strong role="status" tabindex="-1"></strong></div>
           <div class="actions">
             <button type="button" id="retry">Retry</button>
-            <button type="button" id="regular">Start one regular chat</button>
+            <button type="button" id="regular" aria-describedby="regular-hint">Switch to regular here</button>
           </div>
         </div>
         <p id="detail" hidden></p>
+        <p id="regular-hint">Copy any draft you want to keep before switching.</p>
         <p id="error" role="status" hidden></p>
       </div>
     `;
@@ -97,6 +100,7 @@
     const retryButton = shadow.querySelector('#retry');
     const regularButton = shadow.querySelector('#regular');
     const detail = shadow.querySelector('#detail');
+    const regularHint = shadow.querySelector('#regular-hint');
     const error = shadow.querySelector('#error');
     let lastStatus;
     retryButton.addEventListener('click', event => {
@@ -109,16 +113,16 @@
       regularButton.disabled = true;
       error.hidden = true;
       try {
-        await openRegular();
+        await switchToRegular();
       } catch {
-        error.textContent = 'Couldn’t open a regular chat. Try again.';
+        error.textContent = 'Couldn’t switch to a regular chat. Try again.';
         error.hidden = false;
       } finally {
         regularButton.disabled = false;
       }
     });
     return {
-      render(status) {
+      render(status, replacesPage) {
         if (!Object.hasOwn(titles, status)) { host.remove(); return; }
         const editor = [...document.querySelectorAll(editors[site])]
           .find(element => element.getClientRects().length > 0);
@@ -134,6 +138,7 @@
           host.remove();
           return;
         }
+        regularHint.hidden = !replacesPage || status === 'regular';
         if (status === lastStatus) return;
         lastStatus = status;
         if (title.textContent !== titles[status]) title.textContent = titles[status];
