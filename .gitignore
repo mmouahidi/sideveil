@@ -1,0 +1,15 @@
+# Local dependencies, browser profiles, and development output
+node_modules/
+coverage/
+.DS_Store
+Thumbs.db
+*.log
+*.zip
+*.crx
+*.pem
+.env
+.env.*
+!.env.example
+.lavish/
+.impeccable/
+work/

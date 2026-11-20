@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Sideveil</title>
+  <link rel="stylesheet" href="popup.css">
+  <script src="core.js" defer></script>
+  <script src="popup.js" defer></script>
+</head>
+<body>
+  <header>
+    <div class="identity"><svg class="brand-mark" width="42" height="42" viewBox="0 0 128 128" fill="none" aria-hidden="true"><path d="M83 40H51C39 40 31 48 31 60V66C31 78 39 86 51 86H52V99L69 86H76" stroke="currentColor" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><circle cx="88" cy="65" r="5" fill="currentColor"/><circle cx="104" cy="65" r="4" fill="#A9F0D3"/></svg><h1>Sideveil</h1></div>
+    <p class="tagline">Temporary chats. By default.</p>
+  </header>
+  <main>
+    <fieldset disabled id="controls">
+      <legend>Make it automatic</legend>
+      <label><span>ChatGPT<small>Temporary chat</small></span><input type="checkbox" id="chatgpt" role="switch" aria-label="Automatic temporary chats for ChatGPT"></label>
+      <label><span>Claude<small>Incognito chat</small></span><input type="checkbox" id="claude" role="switch" aria-label="Automatic incognito chats for Claude"></label>
+      <label><span>Gemini<small>Temporary chat</small></span><input type="checkbox" id="gemini" role="switch" aria-label="Automatic temporary chats for Gemini"></label>
+    </fieldset>
+    <section aria-label="Current page"><h2><span class="status-dot" aria-hidden="true"></span>Current page</h2><p id="status" role="status">Checking…</p><button id="new-chat" type="button" hidden>Open a temporary chat <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 12 12 4M4 4h8v8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button></section>
+    <p class="note">New chats only. Saved chats stay unchanged.</p>
+    <footer>Uses each service’s temporary mode. Provider retention rules still apply.<details><summary>About your privacy</summary><p>Sideveil has no analytics and sends no chat data to a developer server. Settings stay in this browser. It does not open a browser Incognito window. Turning a switch off stops automation without closing your current temporary chat.</p></details></footer>
+  </main>
+</body>
+</html>
