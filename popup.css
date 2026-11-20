@@ -27,6 +27,8 @@ section[data-state="active"] .status-dot { background: currentColor; }
 button { display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%; margin-top: 11px; padding: 10px 12px; border: 0; border-radius: 7px; color: #fff; background: var(--blue); font: 550 12px Onest, system-ui, sans-serif; cursor: pointer; }
 button[hidden] { display: none; }
 button:hover { background: #103bc5; }
+button.secondary { min-height: 34px; justify-content: center; margin-top: 4px; background: transparent; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+button.secondary:hover { background: var(--line); }
 button:disabled { opacity: .6; cursor: wait; }
 .note, footer { font-size: 12px; line-height: 1.55; color: var(--muted); }
 .note { margin-top: 12px; }

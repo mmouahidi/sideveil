@@ -2,18 +2,31 @@
 const core = globalThis.IncognitoCore;
 const statusElement = document.querySelector('#status');
 const newChat = document.querySelector('#new-chat');
+const regularChat = document.querySelector('#regular-chat');
+const retry = document.querySelector('#retry');
 let activeSite;
+let activePage;
+let tabId;
+function showStatus(result) {
+  statusElement.textContent = result.message;
+  statusElement.closest('section').dataset.state = result.status;
+  retry.hidden = result.status !== 'unverified' && result.status !== 'blocked';
+}
 async function refreshStatus() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  activeSite = tab?.url ? core.provider(new URL(tab.url)) : null;
+  activePage = tab?.url ? new URL(tab.url) : null;
+  activeSite = activePage?.protocol === 'https:' ? core.provider(activePage) : null;
+  tabId = tab?.id;
   newChat.hidden = !activeSite;
-  if (!activeSite) { statusElement.textContent = 'Open ChatGPT, Claude, or Gemini to check this page.'; return; }
+  regularChat.hidden = !activeSite;
+  if (!activeSite) {
+    showStatus({ status: 'unsupported', message: 'Open ChatGPT, Claude, or Gemini to check this page.' });
+    return;
+  }
   try {
-    const result = await chrome.tabs.sendMessage(tab.id, { type: 'incognito-status' });
-    statusElement.textContent = result.message;
-    statusElement.closest('section').dataset.state = result.status;
+    showStatus(await chrome.tabs.sendMessage(tabId, { type: 'incognito-status' }));
   } catch {
-    statusElement.textContent = 'Reload this page to activate the extension.';
+    showStatus({ status: 'unavailable', message: 'Reload this page to activate the extension.' });
   }
 }
 (async () => {
@@ -38,16 +51,40 @@ async function refreshStatus() {
   } catch { statusElement.textContent = 'Could not load settings. Close and reopen this menu.'; }
 })();
 newChat.addEventListener('click', async () => {
-  const urls = { chatgpt: 'https://chatgpt.com/?temporary-chat=true', claude: 'https://claude.ai/new?incognito', gemini: 'https://gemini.google.com/app' };
   if (!activeSite) return;
+  const url = core.newChatURL(activeSite, activePage);
   newChat.disabled = true;
   try {
     // A separate tab preserves the current conversation and any unsent draft.
     await chrome.storage.local.set({ [activeSite]: true });
-    await chrome.tabs.create({ url: urls[activeSite] });
+    await chrome.tabs.create({ url: core.temporaryURL(url) || url.href });
     window.close();
   } catch {
     statusElement.textContent = 'Could not open the new chat. Try again.';
     newChat.disabled = false;
+  }
+});
+regularChat.addEventListener('click', async () => {
+  if (!activeSite) return;
+  regularChat.disabled = true;
+  try {
+    const result = await chrome.runtime.sendMessage({ type: 'sideveil-open-regular', page: activePage.href });
+    if (!result?.ok) throw new Error('Could not open regular chat');
+    window.close();
+  } catch {
+    statusElement.textContent = 'Couldn’t open a regular chat. Try again.';
+  } finally {
+    regularChat.disabled = false;
+  }
+});
+retry.addEventListener('click', async () => {
+  if (document.activeElement === retry) statusElement.focus({ preventScroll: true });
+  retry.disabled = true;
+  try {
+    showStatus(await chrome.tabs.sendMessage(tabId, { type: 'sideveil-retry' }));
+  } catch {
+    statusElement.textContent = 'Couldn’t reach the page. Reload it and try again.';
+  } finally {
+    retry.disabled = false;
   }
 });

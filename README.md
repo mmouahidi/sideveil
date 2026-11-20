@@ -25,14 +25,15 @@ Sideveil requests or activates each AI service’s native temporary or incognito
 
 - **Temporary by default:** automate the native temporary-chat mode on three supported services.
 - **Choose per service:** turn ChatGPT, Claude, and Gemini automation on or off independently. All three start enabled.
-- **See the current state:** distinguish a requested mode from a verified active indicator.
+- **See the mode before you send:** check Sideveil’s status beside the message box or in the toolbar popup.
+- **Keep one chat in history:** start a regular chat in a separate tab and keep your usual temporary default.
 - **Keep your current conversation:** open a separate temporary chat from the popup without replacing your conversation or draft.
 - **Local settings:** three preferences stored in this browser, with no Sideveil account, analytics, or developer backend.
 - **Simple to inspect:** plain JavaScript, HTML, and CSS, with bundled fonts and no runtime dependencies.
 
 ## Install
 
-The included extension is version **1.1.0** for desktop Chrome and Microsoft Edge. Installation is manual; this README does not link to a published extension-store listing.
+Sideveil runs on desktop Chrome and Microsoft Edge. Install it manually using the steps below.
 
 1. Download this repository using **Code → Download ZIP**, then extract it. Alternatively, clone the repository.
 2. Open `chrome://extensions` in Chrome or `edge://extensions` in Edge.
@@ -49,9 +50,11 @@ Keep the extracted folder on your computer: the browser loads the extension from
 
 1. Open the Sideveil popup and choose which services to automate.
 2. Start a new chat on a supported service.
-3. Confirm temporary or incognito mode using the service’s own indicator before sending a message.
+3. Check the status beside the message box. **Temporary mode confirmed** means Sideveil recognized the service’s own indicator.
 
 On a supported page, **Open a temporary chat** enables automation for that service and opens a separate tab. Turning a service switch off stops future automation; it does not close or exit an already active temporary conversation. While Gemini automation is enabled, Sideveil attempts to reactivate temporary mode if you exit it on a supported new-chat page.
+
+Choose **Start one regular chat** beside the message box or in the popup to open a fresh tab with automation paused. Your draft stays in the original tab. Sideveil resumes its usual default when you reload the regular chat page or start another chat.
 
 ### Status messages
 
@@ -60,9 +63,10 @@ On a supported page, **Open a temporary chat** enables automation for that servi
 | Checking | Sideveil is inspecting the page or waiting for activation. |
 | Active | Sideveil recognized a provider temporary-mode indicator. |
 | Requested | A temporary-mode URL flag is present; the page indicator has not been verified. |
+| Couldn’t confirm | Sideveil did not find the provider’s active indicator. Use **Retry** to check again or use the provider’s own temporary chat control. |
+| Regular chat selected | You opened this chat with automatic temporary mode paused. |
 | Off | Automation is disabled for this service. |
 | Existing chat or another page | The page is outside the supported new-chat routes and is left unchanged. |
-| Could not be activated | Gemini activation timed out. Check availability or turn its automation off. |
 
 ## How it works
 
@@ -74,17 +78,17 @@ On a supported page, **Open a temporary chat** enables automation for that servi
 
 Content scripts watch supported pages for navigation and relevant interface changes. Saved chats, projects, Gems, shared chats, settings, and sign-in routes are outside the new-chat routes; Sideveil does not convert existing conversations retroactively.
 
-Gemini activation makes at most four attempts, spaced at least 2.5 seconds apart. While activation is pending, Sideveil pauses ordinary composer input and send events. After approximately 15 seconds without activation, it shows a warning. This page-level guard does not intercept network requests: programmatic sends, voice input, other tools, or page changes can bypass it.
+Gemini activation makes at most four attempts per try, spaced at least 2.5 seconds apart. Until activation succeeds, Sideveil pauses ordinary input and send events. After about 15 seconds it offers **Retry** and **Start one regular chat**. The guard works on page events, so voice input, other tools, and site updates can bypass it.
 
 ## Privacy and permissions
 
-Sideveil stores only its three automation preferences in `chrome.storage.local`. On supported pages, it inspects the URL and relevant interface controls to request and recognize temporary mode. Code and fonts ship with the extension.
+Sideveil stores its three automation preferences in `chrome.storage.local`. To open a regular chat, it temporarily stores the new tab ID, provider, and expiry in browser session memory. On supported pages, it inspects the URL and relevant interface controls to request and recognize temporary mode. Code and fonts ship with the extension.
 
 The extension has no analytics, remote code, developer server, prompt collection, message logging, or network interception. It does not transmit chat data or preferences to a developer backend.
 
 | Permission or site access | Purpose |
 | --- | --- |
-| `storage` | Save the three service switches locally. Browser sync storage is not used. |
+| `storage` | Save the service switches locally and pass a one-time exception to a new tab through session memory. |
 | `activeTab` | Identify the current supported tab when the popup is opened and request its mode status. |
 | `https://chatgpt.com/*` | Run the ChatGPT content script. |
 | `https://claude.ai/*` | Run the Claude content script. |
@@ -99,8 +103,8 @@ Read the [full privacy policy](PRIVACY.md).
 | Symptom | What to do |
 | --- | --- |
 | The popup asks you to reload | Reload the supported page after installing or updating the extension. |
-| Status stays at “Requested” | Check the provider’s own indicator. An unrecognized language or changed interface can prevent verification. |
-| Gemini pauses typing or sending | Wait for activation. If the warning appears, turn Gemini automation off to release the composer, or reload to retry. |
+| Sideveil says “Couldn’t confirm” | Check for the provider’s indicator. An unrecognized language or changed interface can prevent verification. Retry to check again or use the provider’s temporary chat control. |
+| Gemini pauses typing or sending | Wait for activation. If it times out, choose **Retry** or **Start one regular chat**. Gemini’s temporary mode requires a personal Google account. [Gemini Help](https://support.google.com/gemini/answer/13275745?co=GENIE.Platform%3DDesktop&hl=en) |
 | A saved conversation stays unchanged | Start a new chat. Sideveil does not convert existing conversations. |
 | Temporary mode does not activate | Check that the service switch is on and that the feature is available to your account. Report persistent failures with the details below. |
 
@@ -116,7 +120,7 @@ To run the automated tests, install a Node.js version that supports `node:test` 
 node --test tests/extension.test.cjs
 ```
 
-The suite currently contains **17 tests** covering routing, URL parameter preservation, saved-chat protection, preferences, Gemini activation and retries, follow-up messages, input guards, permissions, icons, and the bundled font license.
+The suite covers routing, saved-chat protection, mode confirmation, retries, one-chat exceptions, preferences, permissions, and bundled assets.
 
 These are local tests using page fixtures. They do not prove that the latest live provider interfaces work. Before distributing a release, manually check new chats, a follow-up message, saved chats, switches, and popup status on each service. See the [release checklist](docs/PUBLISHING.md).
 
@@ -126,6 +130,8 @@ These are local tests using page fixtures. They do not prove that the latest liv
 sideveil/
 ├── manifest.json          # Extension identity, permissions, and content scripts
 ├── core.js                # Provider detection and new-chat URL rules
+├── background.js          # Opens regular tabs and hands off the one-time exception
+├── chat-status.js         # Mode indicator and controls beside the message box
 ├── content.js             # Activation, status detection, navigation, and guards
 ├── popup.html             # Settings and current-page status
 ├── popup.css              # Light/dark popup styling and bundled font
